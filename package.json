@@ -1,6 +1,6 @@
 {
   "name": "opunk",
-  "version": "2.0.0",
+  "version": "1.2.0",
   "description": "Ogah PUsing Ngirim Kesemua (Whatsapp Broadcast)",
   "main": "wa.js",
   "scripts": {
@@ -16,10 +16,13 @@
   "license": "MIT",
   "dependencies": {
     "axios": "^0.24.0",
+    "cookie-parser": "^1.4.5",
     "csvtojson": "^2.0.10",
+    "dotenv": "^10.0.0",
     "express": "^4.17.1",
     "express-fileupload": "^1.2.1",
     "express-validator": "^6.13.0",
+    "firebase-admin": "^10.0.0",
     "http": "^0.0.1-security",
     "jquery-csv": "^1.0.21",
     "mime-types": "^2.1.34",

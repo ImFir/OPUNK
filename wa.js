@@ -1,23 +1,41 @@
 /** Whatsapp-web --> */
 const { Client, MessageMedia } = require("whatsapp-web.js");
+
 /** Express --> */
 const express = require("express");
 const app = express();
 const { body, validationResult } = require("express-validator");
+const fileUpload = require("express-fileupload");
 const fs = require("fs");
+
 /** Socket.IO--> */
 const http = require("http");
 const server = http.createServer(app);
 const socketIO = require("socket.io");
 const io = socketIO(server);
-/** Socket.IO--> */
-const fileUpload = require("express-fileupload");
+
+/** Parser --> */
+const cookieParser = require("cookie-parser");
+
+/** Other --> */
 const qrcode = require("qrcode");
 const { phoneNumberFormatter } = require("./helpers/formatter");
 const axios = require("axios");
 const mime = require("mime-types");
 const CSVToJSON = require("csvtojson");
+const admin = require("firebase-admin");
 const port = process.env.PORT || 8000;
+
+const key =
+  "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDNThowatHMH3S3\nXS2FVdMSK1FfRcsJFs+cploycG+Lzum89rk0ME/XeE9IUEmJ7Uh9l05HozQLnNPb\nD2oxyGkbq74b54cU2nHnBE8FdmZEe5DJb9TPcKLQCLWpSR7V+U0Sy95lN+TemKKd\nbwMES0niiZ9NdlvsxE8Wyn7xKPFBok+epEkUBEvPh3cuIXu0b0gouAFgb6JUIrl2\nPeiJ17jU3exKHTfIG9nAsBr6/UUoneY8tzu+Uwmf3nDzFeBCQol8BO+q3MgHAc2O\nCXtjya7+Ppuh23lVyKMh3u4qvwEI/UIlaGxADwPAtV/yd1Ogykewd8E/1d5UuLVO\np42xMI4BAgMBAAECggEAFuNkg2NVR7F2Ef80VPoa0Zq8s/y+7vYjvS4ak3xPeJcK\nc0Ok+s7Wsonkz4YL53GUXv61qReRH35OFsz4JNwCmSV4yKRI6KfrLOXLvYB+qZcx\nBBQQoJ5zuEeloQgthONfQVTd0rZRhgjJkE2mWMiKpdPRS7yB8Q/NqsJ2i9eUVfcE\nUP5PgmdbFQX8ijo7AIOR9VIvVdylzER5oIg+uaMy8ske05vv7xO4jfHMguwjr0HX\n7E/OMu3V9pU91t/lDLP4jlWrOUG2Vq//Xre3UK7vRX8943/9gurCPJhP4AON0lkh\nIr57Sfrvggz1u8VrwDg0r1uGPs0Gj4OOCHoxS9k41QKBgQDrM9dXW8t0JsZQ152i\nSghmtgf5ZMRg3zxopg1ljkuQbQ7Yn2ek21rG7hCpcnBsoOXk9nMu76xh1JTCBri1\nuGquKhUlPBhMTaLAj1r1JGg8cn6ocIN1PFJaze7KZTlKU2qnwMpcLEkaZLQoQbLO\nzJVm+vtzQ7ToH8xBhSCzcMx0vwKBgQDfdX0TJPAz/qFlreh4fGE2F5hhffnqnKKO\nQhRX+7mv1AoGRLXA4fOBmgAk8yvxuGc5Y21RlaqJab8LziKnu2Lm9CS8s0rnUuJ/\n//aksYCt/YwXfVWBKlRKSg+6Rao6qomR1iSAuF/LHzt4WF9wZBYPLE3YqnsCN7ME\nclsTFPXtPwKBgGjuSeYJZ+0710H9z6+1g6X/E/OphwsIzPSLEHL8Vq3qWbM++ohL\n7GXPk9Nk4M81wRqy8JRCDQ/gPTWKtiEsUzu8Po7MDrML984cpqGzSmWdVvBiseM9\ntCgas6vMGREVwgFxO1Z/02VZBB7poJIuJ4E3+7JixHTCqueYMwybCDwVAoGBAJwE\nDrCYILFcvdkdI+tDhCfdL4IaD6yTchd64XNQiKPPmrQnsvKZj4dUO3eQ5ISfKEr0\nNXY51didIUsfwCh196ainSe20rxRrVyLHOx+FgbkuLQJyPIm2LUJopN+Yk0Vlnlh\nFxlcIV3TT5VFtlTlPFWZrDxzQvEYbH/VS+s1vkLHAoGADcb0/8hO76pjG+GTH594\nySoEQZ5/vXgyEMWyXl3y+yfKzLvn66QbYgp7RAh4Ph7uhdLyg1vRGSbHCuQb2AjP\n3mEZ2VvJVj+1P3PrRrzdW6qGrICJtJtTIlwjteimrE3g6KBHhE8BgqFtg7qqsScI\nuK704XiWNgnnqCh2lJ2Zhsk=\n-----END PRIVATE KEY-----\n";
+
+admin.initializeApp({
+  credential: admin.credential.cert({
+    private_key: key.replace(/\\n/g, "\n"),
+    client_email: "firebase-adminsdk-qimex@opunk-9c443.iam.gserviceaccount.com",
+    project_id: "opunk-9c443",
+  }),
+});
 
 let sessionCfg;
 const SESSION_FILE_PATH = "./whatsapp-session.json";
@@ -113,16 +131,20 @@ client.on("message", (msg) => {
 });
 
 app.use(express.json());
+
 app.use(
   express.urlencoded({
     extended: true,
   })
 );
+
 app.use(
   fileUpload({
     debug: true,
   })
 );
+
+app.use(cookieParser());
 
 // Socket IO
 io.on("connection", (socket) => {
@@ -168,10 +190,27 @@ io.on("connection", (socket) => {
 });
 
 // request from client
-app.get("/", (req, res) => {
-  res.sendFile("index.html", {
+app.get("/", checkCookie, (req, res) => {
+  res.sendFile("views/index.html", {
     root: __dirname,
   });
+  console.log("UID of Signed in User is" + req.decodedClaims.uid);
+});
+
+app.get("/login", (req, res) => {
+  res.sendFile("views/login.html", {
+    root: __dirname,
+  });
+});
+
+app.get("/logout", (req, res) => {
+  sessionLogout(req, res, "__session");
+});
+
+app.get("/savecookie", (req, res) => {
+  const Idtoken = req.query.idToken;
+  console.log(Idtoken, res);
+  savecookie(Idtoken, res);
 });
 
 app.get("/download", function (req, res) {
@@ -309,6 +348,66 @@ app.post(
     }
   }
 );
+
+//saving cookies and verify cookies
+// Reference : https://firebase.google.com/docs/auth/admin/manage-cookies
+
+function savecookie(idtoken, res) {
+  const expiresIn = 60 * 60 * 24 * 5 * 1000;
+  admin
+    .auth()
+    .createSessionCookie(idtoken, { expiresIn })
+    .then(
+      (sessionCookie) => {
+        const options = { maxAge: expiresIn, httpOnly: true, secure: true };
+        res.cookie("__session", sessionCookie, options);
+        /* res.end(JSON.stringify({ status: "success" })); */
+
+        admin
+          .auth()
+          .verifyIdToken(idtoken)
+          .then(function (decodedClaims) {
+            res.redirect("/");
+          });
+      },
+      (error) => {
+        console.log(error);
+        res.status(401).send("UnAuthorised Request");
+      }
+    );
+}
+
+function checkCookie(req, res, next) {
+  const sessionCookie = req.cookies.__session || "";
+  admin
+    .auth()
+    .verifySessionCookie(sessionCookie, true)
+    .then((decodedClaims) => {
+      req.decodedClaims = decodedClaims;
+      next();
+    })
+    .catch((error) => {
+      // Session cookie is unavailable or invalid. Force user to login.
+      res.redirect("/login");
+    });
+}
+
+function sessionLogout(req, res, session) {
+  const sessionCookie = req.cookies.__session || "";
+  res.clearCookie(session);
+  admin
+    .auth()
+    .verifySessionCookie(sessionCookie, true)
+    .then((decodedClaims) => {
+      return admin.auth().revokeRefreshTokens(decodedClaims.sub);
+    })
+    .then(() => {
+      res.redirect("/login");
+    })
+    .catch((error) => {
+      res.redirect("/login");
+    });
+}
 
 server.listen(port, function () {
   console.log("App running on *: " + port);
