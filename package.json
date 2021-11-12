@@ -4,8 +4,8 @@
   "description": "Ogah PUsing Ngirim Kesemua (Whatsapp Broadcast)",
   "main": "wa.js",
   "scripts": {
-    "start": "node wa.js",
-    "start:dev": "nodemon wa.js",
+    "start": "node wa.min.js",
+    "start:dev": "nodemon wa.min.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
