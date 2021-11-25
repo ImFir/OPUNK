@@ -1,25 +1,21 @@
-/** Whatsapp-web --> */
 const { Client, MessageMedia } = require("whatsapp-web.js");
 
-/** Express --> */
 const express = require("express");
 const app = express();
 const { body, validationResult } = require("express-validator");
 const fileUpload = require("express-fileupload");
 const fs = require("fs");
 
-/** Socket.IO--> */
 const http = require("http");
 const server = http.createServer(app);
 const socketIO = require("socket.io");
 const io = socketIO(server);
 
-/** Parser --> */
 const cookieParser = require("cookie-parser");
 
-/** Other --> */
 const qrcode = require("qrcode");
 const { phoneNumberFormatter } = require("./helpers/formatter");
+const { assetSource } = require("./helpers/assets");
 const axios = require("axios");
 const mime = require("mime-types");
 const CSVToJSON = require("csvtojson");
@@ -38,7 +34,7 @@ admin.initializeApp({
 });
 
 let sessionCfg;
-const SESSION_FILE_PATH = "./whatsapp-session.json";
+const SESSION_FILE_PATH = `${__dirname}whatsapp-session.json`;
 
 if (fs.existsSync(SESSION_FILE_PATH)) {
   sessionCfg = require(SESSION_FILE_PATH);
@@ -55,7 +51,7 @@ const client = new Client({
       "--disable-accelerated-2d-canvas",
       "--no-first-run",
       "--no-zygote",
-      "--single-process", // <- this one doesn't works in Windows
+      "--single-process",
       "--disable-gpu",
     ],
   },
@@ -83,7 +79,11 @@ client.on("message", (msg) => {
       } else {
         let replyMsg = "*YOUR GROUPS*\n\n";
         groups.forEach((group, i) => {
-          replyMsg += `ID: ${group.id._serialized}\nName: ${group.name}\n\n`;
+          replyMsg += `ID: ${group.id._serialized}\nName: ${
+            group.name
+          }\nContact Participant: ${group.participants.map(
+            (c) => c.id._serialized
+          )}\n\n`;
         });
         replyMsg +=
           "_You can use the group id to send a message to the group._";
@@ -92,35 +92,27 @@ client.on("message", (msg) => {
     });
   }
 
-  // Downloading media
   if (msg.hasMedia) {
     msg.downloadMedia().then((media) => {
-      // To better understanding
-      // Please look at the console what data we get
       console.log(media);
 
       if (media) {
-        // The folder to store: change as you want!
-        // Create if not exists
         const mediaPath = "./downloaded-media/";
 
         if (!fs.existsSync(mediaPath)) {
           fs.mkdirSync(mediaPath);
         }
 
-        // Get the file extension by mime-type
         const extension = mime.extension(media.mimetype);
 
-        // Filename: change as you want!
-        // I will use the time for this example
-        // Why not use media.filename? Because the value is not certain exists
         const filename = new Date().getTime();
 
         const fullFilename = mediaPath + filename + "." + extension;
 
-        // Save to file
         try {
-          fs.writeFileSync(fullFilename, media.data, { encoding: "base64" });
+          fs.writeFileSync(fullFilename, media.data, {
+            encoding: "base64",
+          });
           console.log("File downloaded successfully!", fullFilename);
         } catch (err) {
           console.log("Failed to save the file:", err);
@@ -131,6 +123,8 @@ client.on("message", (msg) => {
 });
 
 app.use(express.json());
+
+app.use(express.static(__dirname + "views/js"));
 
 app.use(
   express.urlencoded({
@@ -146,9 +140,8 @@ app.use(
 
 app.use(cookieParser());
 
-// Socket IO
 io.on("connection", (socket) => {
-  socket.emit("message", "preparing...");
+  socket.emit("message", "Whatsapp is connected");
 
   client.on("qr", (qr) => {
     console.log("QR RECEIVED", qr);
@@ -189,16 +182,20 @@ io.on("connection", (socket) => {
   });
 });
 
-// request from client
 app.get("/", checkCookie, (req, res) => {
-  res.sendFile("views/index.html", {
+  res.sendFile("views/index.min.html", {
     root: __dirname,
   });
   console.log("UID of Signed in User is" + req.decodedClaims.uid);
 });
 
 app.get("/login", (req, res) => {
-  res.sendFile("views/login.html", {
+  res.sendFile("views/login.min.html", {
+    root: __dirname,
+  });
+});
+app.get("/hal/:source", (req, res) => {
+  res.sendFile(`views/${req.params.source}.min.html`, {
     root: __dirname,
   });
 });
@@ -215,10 +212,22 @@ app.get("/savecookie", (req, res) => {
 
 app.get("/download", function (req, res) {
   const file = `${__dirname}/uploads/template_msg.csv`;
-  res.download(file); // Set disposition and send it.
+  res.download(file);
+});
+app.get("/js-index", function (req, res) {
+  const file = `${__dirname}/views/js/index.min.js`;
+  res.download(file);
+});
+app.get("/js-auth", function (req, res) {
+  const file = `${__dirname}/views/js/auth.min.js`;
+  res.download(file);
 });
 
-// upload file request
+app.get("/assets/:source", function (req, res) {
+  const file = `${__dirname + assetSource(req.params.source)}`;
+  res.download(file);
+});
+
 app.post("/uploadfile", function (req, res, next) {
   const file_upload = req.files.file;
   const file_type = req.body.type;
@@ -247,8 +256,36 @@ app.post("/uploadfile", function (req, res, next) {
       });
   });
 });
+app.get("/group-getcontact", function (req, res) {
+  client.getChats().then((chats) => {
+    const groups = chats.filter((chat) => chat.isGroup);
 
-// Send message
+    if (groups.length == 0) {
+      return res.status(422).json({
+        status: false,
+        response: "You have no group yet.",
+      });
+    } else {
+      let dataArray = [];
+      let yourGroups = [];
+      groups.forEach((group, i) => {
+        yourGroups.push({
+          id_group: `${group.id._serialized}`,
+          name_group: `${group.name}`,
+          contacts: `${group.participants.map((c) => c.id._serialized)}`,
+        });
+      });
+
+      dataArray.push({
+        yourGroups: yourGroups,
+      });
+      return res.status(200).json({
+        status: true,
+        response: dataArray,
+      });
+    }
+  });
+});
 app.post(
   "/send-message",
   [body("number").notEmpty(), body("message").notEmpty()],
@@ -301,7 +338,9 @@ app.post(
         file.name
       );
       client
-        .sendMessage(number, media, { caption: message })
+        .sendMessage(number, media, {
+          caption: message,
+        })
         .then((response) => {
           res.status(200).json({
             status: true,
@@ -332,7 +371,9 @@ app.post(
 
       const media = new MessageMedia(mimetype, attachment, namemedia);
       client
-        .sendMessage(number, media, { caption: message })
+        .sendMessage(number, media, {
+          caption: message,
+        })
         .then((response) => {
           res.status(200).json({
             status: true,
@@ -349,19 +390,21 @@ app.post(
   }
 );
 
-//saving cookies and verify cookies
-// Reference : https://firebase.google.com/docs/auth/admin/manage-cookies
-
 function savecookie(idtoken, res) {
   const expiresIn = 60 * 60 * 24 * 5 * 1000;
   admin
     .auth()
-    .createSessionCookie(idtoken, { expiresIn })
+    .createSessionCookie(idtoken, {
+      expiresIn,
+    })
     .then(
       (sessionCookie) => {
-        const options = { maxAge: expiresIn, httpOnly: true, secure: true };
+        const options = {
+          maxAge: expiresIn,
+          httpOnly: true,
+          secure: true,
+        };
         res.cookie("__session", sessionCookie, options);
-        /* res.end(JSON.stringify({ status: "success" })); */
 
         admin
           .auth()
@@ -387,7 +430,6 @@ function checkCookie(req, res, next) {
       next();
     })
     .catch((error) => {
-      // Session cookie is unavailable or invalid. Force user to login.
       res.redirect("/login");
     });
 }
@@ -400,6 +442,12 @@ function sessionLogout(req, res, session) {
     .verifySessionCookie(sessionCookie, true)
     .then((decodedClaims) => {
       return admin.auth().revokeRefreshTokens(decodedClaims.sub);
+    })
+    .then(() => {
+      return fs.unlinkSync(SESSION_FILE_PATH, function (err) {
+        if (err) return console.log(err);
+        console.log("Session file deleted!");
+      });
     })
     .then(() => {
       res.redirect("/login");
