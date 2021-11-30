@@ -2,6 +2,12 @@
 Aplikasi Whatsapp Blast
 
 
+## Install Aplikasi Berikut ini terlebih dahulu:
+
+ - [NodeJS](https://nodejs.org/en/)
+ - [GIT](https://git-scm.com/downloads)
+ 
+
 ## Clone this project
 
 ```bash
