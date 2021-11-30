@@ -5,6 +5,8 @@ Aplikasi Whatsapp Blast
 ## Install Aplikasi Berikut ini terlebih dahulu:
 
  - [NodeJS](https://nodejs.org/en/)
+ - [NodeJS untuk Windows 7 64bit](https://nodejs.org/download/release/v13.14.0/node-v13.14.0-x64.msi)
+ - [NodeJS untuk Windows 7 32bit](https://nodejs.org/download/release/v13.14.0/node-v13.14.0-x86.msi)
  - [GIT](https://git-scm.com/downloads)
  
 
