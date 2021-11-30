@@ -11,7 +11,7 @@ const phoneNumberFormatter = function (number) {
   // 3. Menambahkan angka 0 di depan (prefix) jika angka awalnya 8,
   //    ini biasa terjadi ketika melakukan save pada excel ke format csv, angka 0 nya hilang.
   if (formatted.startsWith("8")) {
-    formatted = "62" + formatted.substr(0);
+    formatted = "62" + formatted;
   }
 
   if (!formatted.endsWith("@c.us")) {
