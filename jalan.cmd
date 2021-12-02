@@ -1,2 +1,3 @@
 start git
-npm run start
+npm run start:dev
+exit
