@@ -1,8 +1,8 @@
 {
-  "name": "opunk",
-  "version": "1.2.0",
-  "description": "Ogah PUsing Ngirim Kesemua (Whatsapp Broadcast)",
-  "main": "wa.js",
+  "name": "opung",
+  "version": "1.2.2",
+  "description": "Ogah PUsing Ngirim Whatsapp Broadcast)",
+  "main": "wa.min.js",
   "scripts": {
     "start": "node wa.min.js",
     "start:dev": "nodemon wa.min.js",
