@@ -6,7 +6,7 @@
 
 OPUNG adalah apliakasi whatsapp sender atau Whatsapp Web, yang berjalan pada browser. ini merupakan implimentasi dari [pedroslopez - whatsapp-web.js](https://github.com/pedroslopez/whatsapp-web.js/) - sebuah WhatsApp client library 
 
-## Fitur
+## Features
 
 - Kirim pesan text ke satu atau banyak nomor sekaligus
 - Kirim pesan media (Gambar, files, dll) ke satu atau bannyak sekaligus
@@ -53,11 +53,11 @@ http://localhost:8000
 
 | Tutorial | Link |
 | ------ | ------ |
-| Instalasi bag.1 | [plugins/dropbox/README.md][PlDb] |
-| Instalasi bag.2 | [plugins/github/README.md][PlGh] |
-| Kirim pesan Mode Mudah | [plugins/googledrive/README.md][PlGd] |
-| Kirim pesan Mode Susah | [plugins/onedrive/README.md][PlOd] |
-| Grab seluruh kontak Grup | [plugins/medium/README.md][PlMe] |
+| Instalasi bag.1 | [Lihat]() |
+| Instalasi bag.2 | [Lihat]() |
+| Kirim pesan Mode Mudah | [Lihat]() |
+| Kirim pesan Mode Susah | [Lihat]() |
+| Grab seluruh kontak Grup | [Lihat]() |
 
 
 ## License
